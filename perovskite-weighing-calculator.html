@@ -318,6 +318,16 @@
       overflow: auto;
     }
 
+    .cloud-status {
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+      background: #fbfcfb;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
     .record {
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -414,7 +424,7 @@
     <header class="topbar">
       <div>
         <h1>钙钛矿称量计算器</h1>
-        <p class="subtitle">输入 FA / MA / Cs / Br 配方、Pb 浓度和体积，实时换算前驱体称量质量。记录保存在当前浏览器中。</p>
+        <p class="subtitle">输入 FA / MA / Cs / Br 配方、Pb 浓度和体积，实时换算前驱体称量质量。配置云数据库后，所有用户保存的记录会集中保留。</p>
       </div>
       <div class="status-pill" id="statusPill">实时计算</div>
     </header>
@@ -529,10 +539,12 @@
           <button type="button" class="danger" id="clearRecords">清空记录</button>
         </div>
       </div>
+      <div class="cloud-status" id="cloudStatus">正在检查云端记录配置...</div>
       <div class="record-list" id="recordList"></div>
     </section>
   </main>
 
+  <script src="cloud-config.js"></script>
   <script>
     const DEFAULT_STATE = {
       fa: 0.80,
@@ -554,6 +566,7 @@
 
     const STORAGE_KEY = "perovskite-calculator-state-v1";
     const RECORDS_KEY = "perovskite-calculator-records-v1";
+    const CLOUD_CONFIG = window.PEROVSKITE_CLOUD || {};
     const reagentLabels = {
       FAI: "FAI",
       MAI: "MAI",
@@ -568,9 +581,11 @@
     const molarMassFields = document.getElementById("molarMassFields");
     const resultBody = document.getElementById("resultBody");
     const recordList = document.getElementById("recordList");
+    const cloudStatus = document.getElementById("cloudStatus");
     const errorBox = document.getElementById("errorBox");
     const toast = document.getElementById("toast");
     let latestCalculation = null;
+    let currentRecords = [];
 
     function readStoredState() {
       try {
@@ -839,6 +854,187 @@
       showToast("记录已清空。");
     }
 
+    function isCloudConfigured() {
+      return Boolean(CLOUD_CONFIG.supabaseUrl && CLOUD_CONFIG.supabaseAnonKey);
+    }
+
+    function cloudHeaders(extra = {}) {
+      return {
+        apikey: CLOUD_CONFIG.supabaseAnonKey,
+        Authorization: `Bearer ${CLOUD_CONFIG.supabaseAnonKey}`,
+        ...extra
+      };
+    }
+
+    function toDisplayRecord(row) {
+      return {
+        id: row.id,
+        savedAt: new Date(row.saved_at).toLocaleString("zh-CN", { hour12: false }),
+        formula: row.formula,
+        nPbMmol: Number(row.n_pb_mmol),
+        input: row.input,
+        rows: row.rows
+      };
+    }
+
+    function toCloudRecord(record) {
+      return {
+        saved_at: record.savedAtIso,
+        formula: record.formula,
+        n_pb_mmol: record.nPbMmol,
+        input: record.input,
+        rows: record.rows
+      };
+    }
+
+    async function fetchCloudRecords() {
+      const endpoint = `${CLOUD_CONFIG.supabaseUrl.replace(/\/$/, "")}/rest/v1/perovskite_records?select=*&order=saved_at.desc&limit=200`;
+      const response = await fetch(endpoint, { headers: cloudHeaders() });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return (await response.json()).map(toDisplayRecord);
+    }
+
+    async function insertCloudRecord(record) {
+      const endpoint = `${CLOUD_CONFIG.supabaseUrl.replace(/\/$/, "")}/rest/v1/perovskite_records`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: cloudHeaders({
+          "Content-Type": "application/json",
+          Prefer: "return=minimal"
+        }),
+        body: JSON.stringify(toCloudRecord(record))
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+    }
+
+    function getRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function setRecords(records) {
+      currentRecords = records;
+      localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+    }
+
+    function renderRecords(records = currentRecords) {
+      currentRecords = records;
+      if (records.length === 0) {
+        recordList.innerHTML = '<div class="empty">还没有保存记录。</div>';
+        return;
+      }
+
+      recordList.innerHTML = records.map((record, index) => `
+        <article class="record">
+          <div class="record-head">
+            <span>${record.savedAt}</span>
+            <span>#${records.length - index}</span>
+          </div>
+          <div class="record-formula">${record.formula}</div>
+          <p class="record-data">${record.rows.map((row) => `${row.reagent}: ${format(row.mg, 2)} mg`).join("；")}</p>
+          <p class="record-data">Pb: ${format(record.nPbMmol, 3)} mmol；浓度: ${format(record.input.concentration, 3)} M；体积: ${format(record.input.volume, 3)} mL</p>
+        </article>
+      `).join("");
+    }
+
+    async function loadRecords() {
+      if (!isCloudConfigured()) {
+        currentRecords = getRecords();
+        cloudStatus.textContent = "云端未配置：记录会暂存在当前浏览器。填写 cloud-config.js 后即可集中保存所有用户记录。";
+        renderRecords(currentRecords);
+        return;
+      }
+
+      cloudStatus.textContent = "正在从云端加载所有用户保存的记录...";
+      try {
+        const records = await fetchCloudRecords();
+        setRecords(records);
+        cloudStatus.textContent = `云端已连接：已加载 ${records.length} 条共享记录。`;
+        renderRecords(records);
+      } catch (error) {
+        currentRecords = getRecords();
+        cloudStatus.textContent = "云端读取失败：正在显示本机缓存记录。请检查 Supabase URL、anon key 和表权限。";
+        renderRecords(currentRecords);
+        console.error(error);
+      }
+    }
+
+    async function saveCurrentRecord() {
+      if (!latestCalculation) {
+        showToast("输入有误，无法保存记录。");
+        return;
+      }
+
+      const savedAtIso = new Date().toISOString();
+      const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        savedAtIso,
+        savedAt: new Date(savedAtIso).toLocaleString("zh-CN", { hour12: false }),
+        ...structuredClone(latestCalculation)
+      };
+
+      if (isCloudConfigured()) {
+        try {
+          await insertCloudRecord(record);
+          await loadRecords();
+          showToast("已保存到云端共享记录。");
+          return;
+        } catch (error) {
+          console.error(error);
+          showToast("云端保存失败，已保存到本机缓存。");
+        }
+      } else {
+        showToast("云端未配置，已保存到本机缓存。");
+      }
+
+      const records = getRecords();
+      records.unshift(record);
+      setRecords(records);
+      renderRecords(records);
+    }
+
+    function exportRecords() {
+      const records = currentRecords.length ? currentRecords : getRecords();
+      if (records.length === 0) {
+        showToast("没有可导出的记录。");
+        return;
+      }
+      const header = ["savedAt", "formula", "reagent", "mmol", "mg", "g", "concentration_M", "volume_mL"];
+      const rows = records.flatMap((record) => record.rows.map((row) => [
+        record.savedAt,
+        record.formula,
+        row.reagent,
+        format(row.mmol, 5),
+        format(row.mg, 5),
+        format(row.g, 8),
+        format(record.input.concentration, 5),
+        format(record.input.volume, 5)
+      ]));
+      const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `perovskite-records-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("CSV 已导出。");
+    }
+
+    function clearRecords() {
+      if (!confirm("确定清空本机缓存记录吗？云端记录不会被删除。")) return;
+      setRecords([]);
+      renderRecords([]);
+      showToast("本机缓存记录已清空。");
+    }
+
     createMolarMassFields();
     writeStateToInputs();
     document.querySelectorAll("input").forEach((input) => {
@@ -853,7 +1049,7 @@
     document.getElementById("exportRecords").addEventListener("click", exportRecords);
     document.getElementById("clearRecords").addEventListener("click", clearRecords);
     calculate();
-    renderRecords();
+    loadRecords();
   </script>
 </body>
 </html>
