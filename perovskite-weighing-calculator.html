@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>钙钛矿称量计算器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211f;
+      --muted: #65716e;
+      --line: #d9e0dc;
+      --panel: #ffffff;
+      --panel-soft: #f5f8f6;
+      --accent: #0b7c6d;
+      --accent-strong: #075e53;
+      --warn: #b9472f;
+      --warn-bg: #fff1ed;
+      --ok-bg: #eaf7f2;
+      --shadow: 0 18px 50px rgba(22, 39, 36, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(11, 124, 109, 0.05) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(11, 124, 109, 0.04) 1px, transparent 1px),
+        #eef3ef;
+      background-size: 34px 34px;
+    }
+
+    button,
+    input {
+      font: inherit;
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 20px;
+      padding-bottom: 18px;
+      border-bottom: 2px solid rgba(11, 124, 109, 0.18);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(24px, 4vw, 40px);
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .status-pill {
+      min-width: 150px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      text-align: center;
+      color: var(--accent-strong);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 18px;
+      align-items: start;
+      margin-top: 20px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel h2 {
+      margin: 0;
+      padding: 16px 18px;
+      font-size: 18px;
+      border-bottom: 1px solid var(--line);
+      background: #fbfcfb;
+    }
+
+    .section {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .fields {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 1fr 132px;
+      gap: 12px;
+      align-items: center;
+    }
+
+    label {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .hint {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+
+    input {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px solid #bcc8c3;
+      border-radius: 6px;
+      color: var(--ink);
+      background: #fff;
+      text-align: right;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(11, 124, 109, 0.25);
+      border-color: var(--accent);
+    }
+
+    .readonly {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-height: 40px;
+      padding: 8px 10px;
+      border: 1px dashed #b9c5c1;
+      border-radius: 6px;
+      background: var(--panel-soft);
+      color: var(--accent-strong);
+      font-weight: 800;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      min-height: 40px;
+      padding: 9px 13px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover {
+      background: var(--accent-strong);
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--accent-strong);
+    }
+
+    button.secondary:hover {
+      background: var(--ok-bg);
+    }
+
+    button.danger {
+      border-color: #b9472f;
+      background: #b9472f;
+    }
+
+    .summary {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+    }
+
+    .formula-box {
+      padding: 16px;
+      border: 1px solid rgba(11, 124, 109, 0.22);
+      border-radius: 8px;
+      background: var(--ok-bg);
+    }
+
+    .formula {
+      font-size: clamp(18px, 3vw, 27px);
+      font-weight: 900;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .metric {
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 5px;
+      font-size: 18px;
+    }
+
+    .error {
+      display: none;
+      padding: 12px 14px;
+      border: 1px solid rgba(185, 71, 47, 0.36);
+      border-radius: 8px;
+      background: var(--warn-bg);
+      color: var(--warn);
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .error.show {
+      display: block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    th:first-child,
+    td:first-child {
+      text-align: left;
+      font-weight: 800;
+    }
+
+    th {
+      color: var(--muted);
+      background: #fbfcfb;
+      font-size: 13px;
+    }
+
+    tbody tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .records {
+      margin-top: 18px;
+    }
+
+    .record-list {
+      display: grid;
+      gap: 12px;
+      padding: 16px 18px;
+      max-height: 430px;
+      overflow: auto;
+    }
+
+    .record {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfb;
+      padding: 12px;
+    }
+
+    .record-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .record-formula {
+      margin-bottom: 8px;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .record-data {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .empty {
+      padding: 18px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .toast {
+      min-height: 22px;
+      color: var(--accent-strong);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 880px) {
+      .topbar,
+      .grid {
+        display: block;
+      }
+
+      .status-pill {
+        margin-top: 14px;
+        text-align: left;
+      }
+
+      .grid > * + * {
+        margin-top: 18px;
+      }
+
+      .meta {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 16px;
+      }
+
+      .field {
+        grid-template-columns: 1fr;
+        gap: 7px;
+      }
+
+      input,
+      .readonly {
+        text-align: left;
+        justify-content: flex-start;
+      }
+
+      th,
+      td {
+        padding: 10px 8px;
+        font-size: 13px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1>钙钛矿称量计算器</h1>
+        <p class="subtitle">输入 FA / MA / Cs / Br 配方、Pb 浓度和体积，实时换算前驱体称量质量。记录保存在当前浏览器中。</p>
+      </div>
+      <div class="status-pill" id="statusPill">实时计算</div>
+    </header>
+
+    <div class="grid">
+      <section class="panel" aria-labelledby="inputTitle">
+        <h2 id="inputTitle">输入参数</h2>
+
+        <div class="section">
+          <div class="section-title">A 位比例</div>
+          <div class="fields">
+            <div class="field">
+              <label for="fa">FA 比例<span class="hint">FAI 摩尔数 = FA 比例 * Pb 总摩尔数</span></label>
+              <input id="fa" data-number type="number" min="0" step="0.01">
+            </div>
+            <div class="field">
+              <label for="ma">MA 比例<span class="hint">MAI 摩尔数 = MA 比例 * Pb 总摩尔数</span></label>
+              <input id="ma" data-number type="number" min="0" step="0.01">
+            </div>
+            <div class="field">
+              <label for="cs">Cs 比例<span class="hint">FA + MA + Cs 需要等于 1.000</span></label>
+              <input id="cs" data-number type="number" min="0" step="0.01">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">卤素与溶液</div>
+          <div class="fields">
+            <div class="field">
+              <label for="br">Br 比例<span class="hint">I 比例会自动计算；Br 由 PbBr2 提供</span></label>
+              <input id="br" data-number type="number" min="0" max="0.6667" step="0.01">
+            </div>
+            <div class="field">
+              <label>I 比例<span class="hint">I = 1 - Br</span></label>
+              <div class="readonly" id="iodineRatio">0.8300</div>
+            </div>
+            <div class="field">
+              <label for="concentration">Pb 摩尔浓度 M<span class="hint">例如 1.4 M</span></label>
+              <input id="concentration" data-number type="number" min="0" step="0.01">
+            </div>
+            <div class="field">
+              <label for="volume">溶液体积 mL<span class="hint">最终配制体积</span></label>
+              <input id="volume" data-number type="number" min="0" step="0.1">
+            </div>
+            <div class="field">
+              <label for="rbcl">RbCl mol%<span class="hint">相对 Pb 总摩尔数添加</span></label>
+              <input id="rbcl" data-number type="number" min="0" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section-title">分子量 g/mol</div>
+          <div class="fields" id="molarMassFields"></div>
+        </div>
+
+        <div class="section">
+          <div class="actions">
+            <button type="button" id="saveRecord">保存本次记录</button>
+            <button type="button" class="secondary" id="copyResult">复制结果</button>
+            <button type="button" class="secondary" id="resetMasses">恢复默认分子量</button>
+          </div>
+          <p class="toast" id="toast" aria-live="polite"></p>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="resultTitle">
+        <h2 id="resultTitle">称量结果</h2>
+        <div class="summary">
+          <div class="error" id="errorBox"></div>
+          <div class="formula-box">
+            <div class="formula" id="formulaText">FA0.80MA0.05Cs0.15Pb(I0.83Br0.17)3 + 5 mol% RbCl</div>
+          </div>
+          <div class="meta">
+            <div class="metric">
+              <span>Pb 总摩尔数</span>
+              <strong id="pbMmol">1.400 mmol</strong>
+            </div>
+            <div class="metric">
+              <span>目标体积</span>
+              <strong id="volumeInfo">1.000 mL</strong>
+            </div>
+            <div class="metric">
+              <span>浓度基准</span>
+              <strong>Pb M</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>药品</th>
+                <th>mmol</th>
+                <th>mg</th>
+                <th>g</th>
+              </tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel records" aria-labelledby="recordsTitle">
+      <h2 id="recordsTitle">已保存记录</h2>
+      <div class="section">
+        <div class="actions">
+          <button type="button" class="secondary" id="exportRecords">导出 CSV</button>
+          <button type="button" class="danger" id="clearRecords">清空记录</button>
+        </div>
+      </div>
+      <div class="record-list" id="recordList"></div>
+    </section>
+  </main>
+
+  <script>
+    const DEFAULT_STATE = {
+      fa: 0.80,
+      ma: 0.05,
+      cs: 0.15,
+      br: 0.17,
+      concentration: 1.4,
+      volume: 1,
+      rbcl: 5,
+      molarMasses: {
+        FAI: 171.97,
+        MAI: 158.97,
+        CsI: 259.81,
+        PbI2: 461.01,
+        PbBr2: 367.01,
+        RbCl: 120.92
+      }
+    };
+
+    const STORAGE_KEY = "perovskite-calculator-state-v1";
+    const RECORDS_KEY = "perovskite-calculator-records-v1";
+    const reagentLabels = {
+      FAI: "FAI",
+      MAI: "MAI",
+      CsI: "CsI",
+      PbI2: "PbI2",
+      PbBr2: "PbBr2",
+      RbCl: "RbCl"
+    };
+
+    const ids = ["fa", "ma", "cs", "br", "concentration", "volume", "rbcl"];
+    const inputs = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
+    const molarMassFields = document.getElementById("molarMassFields");
+    const resultBody = document.getElementById("resultBody");
+    const recordList = document.getElementById("recordList");
+    const errorBox = document.getElementById("errorBox");
+    const toast = document.getElementById("toast");
+    let latestCalculation = null;
+
+    function readStoredState() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return { ...DEFAULT_STATE, ...stored, molarMasses: { ...DEFAULT_STATE.molarMasses, ...(stored?.molarMasses || {}) } };
+      } catch {
+        return structuredClone(DEFAULT_STATE);
+      }
+    }
+
+    let state = readStoredState();
+
+    function createMolarMassFields() {
+      molarMassFields.innerHTML = "";
+      Object.keys(DEFAULT_STATE.molarMasses).forEach((key) => {
+        const row = document.createElement("div");
+        row.className = "field";
+        row.innerHTML = `
+          <label for="mw-${key}">${reagentLabels[key]}<span class="hint">可按试剂瓶标签修改</span></label>
+          <input id="mw-${key}" data-mass="${key}" type="number" min="0" step="0.01">
+        `;
+        molarMassFields.appendChild(row);
+      });
+    }
+
+    function writeStateToInputs() {
+      ids.forEach((id) => {
+        inputs[id].value = state[id];
+      });
+      Object.entries(state.molarMasses).forEach(([key, value]) => {
+        document.getElementById(`mw-${key}`).value = value;
+      });
+    }
+
+    function readStateFromInputs() {
+      ids.forEach((id) => {
+        state[id] = Number(inputs[id].value);
+      });
+      document.querySelectorAll("[data-mass]").forEach((input) => {
+        state.molarMasses[input.dataset.mass] = Number(input.value);
+      });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function format(value, digits = 3) {
+      if (!Number.isFinite(value)) return "-";
+      return value.toFixed(digits);
+    }
+
+    function compactRatio(value) {
+      if (Math.abs(value) < 0.0005) return "0";
+      return Number(value.toFixed(4)).toString();
+    }
+
+    function validate() {
+      const errors = [];
+      const aSum = state.fa + state.ma + state.cs;
+      const masses = Object.entries(state.molarMasses);
+
+      if (Math.abs(aSum - 1) > 0.0001) errors.push(`FA + MA + Cs 当前为 ${format(aSum, 4)}，需要等于 1.0000。`);
+      if (state.br < 0 || state.br > 0.6667) errors.push("Br 比例需要在 0 到 0.6667 之间。");
+      if (state.concentration <= 0) errors.push("Pb 摩尔浓度必须大于 0。");
+      if (state.volume <= 0) errors.push("溶液体积必须大于 0。");
+      if (state.rbcl < 0) errors.push("RbCl mol% 不能为负数。");
+      masses.forEach(([key, value]) => {
+        if (value <= 0) errors.push(`${key} 分子量必须大于 0。`);
+      });
+      ids.forEach((id) => {
+        if (!Number.isFinite(state[id])) errors.push("所有输入框都需要填写有效数字。");
+      });
+      masses.forEach(([key, value]) => {
+        if (!Number.isFinite(value)) errors.push(`${key} 分子量需要填写有效数字。`);
+      });
+
+      return errors;
+    }
+
+    function calculate() {
+      const errors = validate();
+      const iodine = 1 - state.br;
+      document.getElementById("iodineRatio").textContent = format(iodine, 4);
+
+      if (errors.length > 0) {
+        errorBox.textContent = errors.join(" ");
+        errorBox.classList.add("show");
+        document.getElementById("statusPill").textContent = "需要检查输入";
+        latestCalculation = null;
+        resultBody.innerHTML = "";
+        return;
+      }
+
+      errorBox.classList.remove("show");
+      document.getElementById("statusPill").textContent = "实时计算";
+
+      const nPbMmol = state.concentration * state.volume;
+      const mmol = {
+        FAI: state.fa * nPbMmol,
+        MAI: state.ma * nPbMmol,
+        CsI: state.cs * nPbMmol,
+        PbBr2: 1.5 * state.br * nPbMmol,
+        PbI2: nPbMmol - 1.5 * state.br * nPbMmol,
+        RbCl: (state.rbcl / 100) * nPbMmol
+      };
+
+      const rows = ["FAI", "MAI", "CsI", "PbI2", "PbBr2", "RbCl"].map((key) => {
+        const mg = mmol[key] * state.molarMasses[key];
+        return {
+          reagent: key,
+          mmol: mmol[key],
+          mg,
+          g: mg / 1000
+        };
+      });
+
+      const formula = `FA${compactRatio(state.fa)}MA${compactRatio(state.ma)}Cs${compactRatio(state.cs)}Pb(I${compactRatio(iodine)}Br${compactRatio(state.br)})3 + ${compactRatio(state.rbcl)} mol% RbCl`;
+      document.getElementById("formulaText").textContent = formula;
+      document.getElementById("pbMmol").textContent = `${format(nPbMmol, 3)} mmol`;
+      document.getElementById("volumeInfo").textContent = `${format(state.volume, 3)} mL`;
+      renderResults(rows);
+
+      latestCalculation = {
+        formula,
+        nPbMmol,
+        iodine,
+        input: structuredClone(state),
+        rows
+      };
+    }
+
+    function renderResults(rows) {
+      resultBody.innerHTML = rows.map((row) => `
+        <tr>
+          <td>${row.reagent}</td>
+          <td>${format(row.mmol, 3)}</td>
+          <td>${format(row.mg, 2)}</td>
+          <td>${format(row.g, 5)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function getRecords() {
+      try {
+        return JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function setRecords(records) {
+      localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
+    }
+
+    function renderRecords() {
+      const records = getRecords();
+      if (records.length === 0) {
+        recordList.innerHTML = '<div class="empty">还没有保存记录。</div>';
+        return;
+      }
+
+      recordList.innerHTML = records.map((record, index) => `
+        <article class="record">
+          <div class="record-head">
+            <span>${record.savedAt}</span>
+            <span>#${records.length - index}</span>
+          </div>
+          <div class="record-formula">${record.formula}</div>
+          <p class="record-data">${record.rows.map((row) => `${row.reagent}: ${format(row.mg, 2)} mg`).join("；")}</p>
+          <p class="record-data">Pb: ${format(record.nPbMmol, 3)} mmol；浓度: ${format(record.input.concentration, 3)} M；体积: ${format(record.input.volume, 3)} mL</p>
+        </article>
+      `).join("");
+    }
+
+    function makeResultText(record) {
+      const lines = [
+        `保存时间: ${record.savedAt || new Date().toLocaleString("zh-CN")}`,
+        `配方: ${record.formula}`,
+        `Pb总摩尔数: ${format(record.nPbMmol, 3)} mmol`,
+        "称量结果:",
+        ...record.rows.map((row) => `${row.reagent}: ${format(row.mmol, 3)} mmol, ${format(row.mg, 2)} mg, ${format(row.g, 5)} g`)
+      ];
+      return lines.join("\n");
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      window.clearTimeout(showToast.timer);
+      showToast.timer = window.setTimeout(() => {
+        toast.textContent = "";
+      }, 2600);
+    }
+
+    function saveCurrentRecord() {
+      if (!latestCalculation) {
+        showToast("输入有误，无法保存记录。");
+        return;
+      }
+      const records = getRecords();
+      const record = {
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        savedAt: new Date().toLocaleString("zh-CN", { hour12: false }),
+        ...structuredClone(latestCalculation)
+      };
+      records.unshift(record);
+      setRecords(records);
+      renderRecords();
+      showToast("已保存本次记录。");
+    }
+
+    async function copyCurrentResult() {
+      if (!latestCalculation) {
+        showToast("输入有误，无法复制结果。");
+        return;
+      }
+      const text = makeResultText({
+        savedAt: new Date().toLocaleString("zh-CN", { hour12: false }),
+        ...latestCalculation
+      });
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("结果已复制。");
+      } catch {
+        showToast("浏览器不允许自动复制，请手动选中表格复制。");
+      }
+    }
+
+    function exportRecords() {
+      const records = getRecords();
+      if (records.length === 0) {
+        showToast("没有可导出的记录。");
+        return;
+      }
+      const header = ["savedAt", "formula", "reagent", "mmol", "mg", "g", "concentration_M", "volume_mL"];
+      const rows = records.flatMap((record) => record.rows.map((row) => [
+        record.savedAt,
+        record.formula,
+        row.reagent,
+        format(row.mmol, 5),
+        format(row.mg, 5),
+        format(row.g, 8),
+        format(record.input.concentration, 5),
+        format(record.input.volume, 5)
+      ]));
+      const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `perovskite-records-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+      showToast("CSV 已导出。");
+    }
+
+    function resetMolarMasses() {
+      state.molarMasses = structuredClone(DEFAULT_STATE.molarMasses);
+      writeStateToInputs();
+      readStateFromInputs();
+      calculate();
+      showToast("已恢复默认分子量。");
+    }
+
+    function clearRecords() {
+      if (!confirm("确定清空所有保存记录吗？")) return;
+      setRecords([]);
+      renderRecords();
+      showToast("记录已清空。");
+    }
+
+    createMolarMassFields();
+    writeStateToInputs();
+    document.querySelectorAll("input").forEach((input) => {
+      input.addEventListener("input", () => {
+        readStateFromInputs();
+        calculate();
+      });
+    });
+    document.getElementById("saveRecord").addEventListener("click", saveCurrentRecord);
+    document.getElementById("copyResult").addEventListener("click", copyCurrentResult);
+    document.getElementById("resetMasses").addEventListener("click", resetMolarMasses);
+    document.getElementById("exportRecords").addEventListener("click", exportRecords);
+    document.getElementById("clearRecords").addEventListener("click", clearRecords);
+    calculate();
+    renderRecords();
+  </script>
+</body>
+</html>
