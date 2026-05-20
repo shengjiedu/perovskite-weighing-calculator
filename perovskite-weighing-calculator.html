@@ -44,7 +44,7 @@
     .shell {
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 28px 0 40px;
+      padding: 18px 0 30px;
     }
 
     .topbar {
@@ -52,7 +52,7 @@
       align-items: end;
       justify-content: space-between;
       gap: 20px;
-      padding-bottom: 18px;
+      padding-bottom: 12px;
       border-bottom: 2px solid rgba(11, 124, 109, 0.18);
     }
 
@@ -83,10 +83,10 @@
 
     .grid {
       display: grid;
-      grid-template-columns: minmax(320px, 420px) 1fr;
-      gap: 18px;
+      grid-template-columns: minmax(330px, 390px) 1fr;
+      gap: 14px;
       align-items: start;
-      margin-top: 20px;
+      margin-top: 14px;
     }
 
     .panel {
@@ -99,14 +99,14 @@
 
     .panel h2 {
       margin: 0;
-      padding: 16px 18px;
-      font-size: 18px;
+      padding: 12px 14px;
+      font-size: 17px;
       border-bottom: 1px solid var(--line);
       background: #fbfcfb;
     }
 
     .section {
-      padding: 16px 18px;
+      padding: 12px 14px;
       border-bottom: 1px solid var(--line);
     }
 
@@ -128,13 +128,13 @@
 
     .fields {
       display: grid;
-      gap: 12px;
+      gap: 9px;
     }
 
     .field {
       display: grid;
-      grid-template-columns: 1fr 132px;
-      gap: 12px;
+      grid-template-columns: 1fr 108px;
+      gap: 10px;
       align-items: center;
     }
 
@@ -155,7 +155,7 @@
     input {
       width: 100%;
       min-height: 40px;
-      padding: 8px 10px;
+      padding: 7px 9px;
       border: 1px solid #bcc8c3;
       border-radius: 6px;
       color: var(--ink);
@@ -173,7 +173,7 @@
       align-items: center;
       justify-content: flex-end;
       min-height: 40px;
-      padding: 8px 10px;
+      padding: 7px 9px;
       border: 1px dashed #b9c5c1;
       border-radius: 6px;
       background: var(--panel-soft);
@@ -218,19 +218,19 @@
 
     .summary {
       display: grid;
-      gap: 14px;
-      padding: 18px;
+      gap: 10px;
+      padding: 12px 14px;
     }
 
     .formula-box {
-      padding: 16px;
+      padding: 12px;
       border: 1px solid rgba(11, 124, 109, 0.22);
       border-radius: 8px;
       background: var(--ok-bg);
     }
 
     .formula {
-      font-size: clamp(18px, 3vw, 27px);
+      font-size: clamp(17px, 2.5vw, 24px);
       font-weight: 900;
       line-height: 1.35;
       word-break: break-word;
@@ -243,7 +243,7 @@
     }
 
     .metric {
-      padding: 12px;
+      padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfcfb;
@@ -264,7 +264,7 @@
 
     .error {
       display: none;
-      padding: 12px 14px;
+      padding: 10px 12px;
       border: 1px solid rgba(185, 71, 47, 0.36);
       border-radius: 8px;
       background: var(--warn-bg);
@@ -312,14 +312,14 @@
 
     .record-list {
       display: grid;
-      gap: 12px;
-      padding: 16px 18px;
-      max-height: 430px;
+      gap: 10px;
+      padding: 12px 14px;
+      max-height: 360px;
       overflow: auto;
     }
 
     .cloud-status {
-      padding: 10px 18px;
+      padding: 8px 14px;
       border-bottom: 1px solid var(--line);
       color: var(--muted);
       background: #fbfcfb;
@@ -332,7 +332,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfcfb;
-      padding: 12px;
+      padding: 10px;
     }
 
     .record-head {
@@ -432,6 +432,16 @@
     <div class="grid">
       <section class="panel" aria-labelledby="inputTitle">
         <h2 id="inputTitle">输入参数</h2>
+
+        <div class="section">
+          <div class="section-title">记录信息</div>
+          <div class="fields">
+            <div class="field">
+              <label for="weighedBy">称量人<span class="hint">会随保存记录一起保留</span></label>
+              <input id="weighedBy" type="text" placeholder="例如：杜生杰">
+            </div>
+          </div>
+        </div>
 
         <div class="section">
           <div class="section-title">A 位比例</div>
@@ -547,6 +557,7 @@
   <script src="cloud-config.js"></script>
   <script>
     const DEFAULT_STATE = {
+      weighedBy: "",
       fa: 0.80,
       ma: 0.05,
       cs: 0.15,
@@ -577,6 +588,7 @@
     };
 
     const ids = ["fa", "ma", "cs", "br", "concentration", "volume", "rbcl"];
+    const textIds = ["weighedBy"];
     const inputs = Object.fromEntries(ids.map((id) => [id, document.getElementById(id)]));
     const molarMassFields = document.getElementById("molarMassFields");
     const resultBody = document.getElementById("resultBody");
@@ -612,6 +624,9 @@
     }
 
     function writeStateToInputs() {
+      textIds.forEach((id) => {
+        document.getElementById(id).value = state[id] || "";
+      });
       ids.forEach((id) => {
         inputs[id].value = state[id];
       });
@@ -621,6 +636,9 @@
     }
 
     function readStateFromInputs() {
+      textIds.forEach((id) => {
+        state[id] = document.getElementById(id).value.trim();
+      });
       ids.forEach((id) => {
         state[id] = Number(inputs[id].value);
       });
@@ -726,41 +744,10 @@
       `).join("");
     }
 
-    function getRecords() {
-      try {
-        return JSON.parse(localStorage.getItem(RECORDS_KEY)) || [];
-      } catch {
-        return [];
-      }
-    }
-
-    function setRecords(records) {
-      localStorage.setItem(RECORDS_KEY, JSON.stringify(records));
-    }
-
-    function renderRecords() {
-      const records = getRecords();
-      if (records.length === 0) {
-        recordList.innerHTML = '<div class="empty">还没有保存记录。</div>';
-        return;
-      }
-
-      recordList.innerHTML = records.map((record, index) => `
-        <article class="record">
-          <div class="record-head">
-            <span>${record.savedAt}</span>
-            <span>#${records.length - index}</span>
-          </div>
-          <div class="record-formula">${record.formula}</div>
-          <p class="record-data">${record.rows.map((row) => `${row.reagent}: ${format(row.mg, 2)} mg`).join("；")}</p>
-          <p class="record-data">Pb: ${format(record.nPbMmol, 3)} mmol；浓度: ${format(record.input.concentration, 3)} M；体积: ${format(record.input.volume, 3)} mL</p>
-        </article>
-      `).join("");
-    }
-
     function makeResultText(record) {
       const lines = [
         `保存时间: ${record.savedAt || new Date().toLocaleString("zh-CN")}`,
+        `称量人: ${record.input?.weighedBy || "未填写"}`,
         `配方: ${record.formula}`,
         `Pb总摩尔数: ${format(record.nPbMmol, 3)} mmol`,
         "称量结果:",
@@ -775,23 +762,6 @@
       showToast.timer = window.setTimeout(() => {
         toast.textContent = "";
       }, 2600);
-    }
-
-    function saveCurrentRecord() {
-      if (!latestCalculation) {
-        showToast("输入有误，无法保存记录。");
-        return;
-      }
-      const records = getRecords();
-      const record = {
-        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-        savedAt: new Date().toLocaleString("zh-CN", { hour12: false }),
-        ...structuredClone(latestCalculation)
-      };
-      records.unshift(record);
-      setRecords(records);
-      renderRecords();
-      showToast("已保存本次记录。");
     }
 
     async function copyCurrentResult() {
@@ -811,47 +781,12 @@
       }
     }
 
-    function exportRecords() {
-      const records = getRecords();
-      if (records.length === 0) {
-        showToast("没有可导出的记录。");
-        return;
-      }
-      const header = ["savedAt", "formula", "reagent", "mmol", "mg", "g", "concentration_M", "volume_mL"];
-      const rows = records.flatMap((record) => record.rows.map((row) => [
-        record.savedAt,
-        record.formula,
-        row.reagent,
-        format(row.mmol, 5),
-        format(row.mg, 5),
-        format(row.g, 8),
-        format(record.input.concentration, 5),
-        format(record.input.volume, 5)
-      ]));
-      const csv = [header, ...rows].map((line) => line.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n");
-      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `perovskite-records-${new Date().toISOString().slice(0, 10)}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
-      showToast("CSV 已导出。");
-    }
-
     function resetMolarMasses() {
       state.molarMasses = structuredClone(DEFAULT_STATE.molarMasses);
       writeStateToInputs();
       readStateFromInputs();
       calculate();
       showToast("已恢复默认分子量。");
-    }
-
-    function clearRecords() {
-      if (!confirm("确定清空所有保存记录吗？")) return;
-      setRecords([]);
-      renderRecords();
-      showToast("记录已清空。");
     }
 
     function isCloudConfigured() {
@@ -935,7 +870,7 @@
         <article class="record">
           <div class="record-head">
             <span>${record.savedAt}</span>
-            <span>#${records.length - index}</span>
+            <span>${record.input?.weighedBy || "未填写称量人"} · #${records.length - index}</span>
           </div>
           <div class="record-formula">${record.formula}</div>
           <p class="record-data">${record.rows.map((row) => `${row.reagent}: ${format(row.mg, 2)} mg`).join("；")}</p>
@@ -1006,9 +941,10 @@
         showToast("没有可导出的记录。");
         return;
       }
-      const header = ["savedAt", "formula", "reagent", "mmol", "mg", "g", "concentration_M", "volume_mL"];
+      const header = ["savedAt", "weighedBy", "formula", "reagent", "mmol", "mg", "g", "concentration_M", "volume_mL"];
       const rows = records.flatMap((record) => record.rows.map((row) => [
         record.savedAt,
+        record.input?.weighedBy || "",
         record.formula,
         row.reagent,
         format(row.mmol, 5),
